@@ -1,23 +1,38 @@
 package com.example.ITAUtask.model;
 
-import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+
+@Document(collection = "transacoes")
 public class Transacao {
 
-    private final BigDecimal valor;
-    private final OffsetDateTime dataHora;
+    @Id
+    private String id;
 
-    public Transacao(BigDecimal valor, OffsetDateTime dataHora) {
+    private BigDecimal valor;
+
+    private Instant dataHora;
+
+    public Transacao(
+            BigDecimal valor,
+            Instant dataHora
+    ) {
         this.valor = valor;
         this.dataHora = dataHora;
+    }
+
+    public String getId() {
+        return id;
     }
 
     public BigDecimal getValor() {
         return valor;
     }
 
-    public OffsetDateTime getDataHora() {
+    public Instant getDataHora() {
         return dataHora;
     }
 }

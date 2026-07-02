@@ -84,20 +84,15 @@ http://localhost:8080
 
 ## Configuração
 
-O intervalo utilizado para cálculo das estatísticas pode ser configurado no arquivo:
+A aplicacao usa variaveis de ambiente para configurar banco, porta e intervalo inicial sem alterar o codigo:
 
 ```properties
-src/main/resources/application.properties
+spring.data.mongodb.uri=${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/itautask}
+server.port=${PORT:8080}
+estatistica.intervalo-segundos=${ESTATISTICA_INTERVALO_SEGUNDOS:3600}
 ```
 
-Exemplo:
-
-```properties
-# Intervalo em segundos utilizado no cálculo das estatísticas
-estatistica.intervalo-segundos=60
-```
-
-Por padrão, a aplicação considera apenas as transações realizadas nos últimos 60 segundos.
+Os valores depois de `:` sao apenas fallbacks locais. Quando a variavel existir no ambiente, como no Render, o Spring usa o valor da variavel.
 
 ---
 
@@ -156,6 +151,73 @@ Exemplo de resposta:
   "min": 100.00,
   "max": 200.50
 }
+```
+
+---
+
+### Consultar Intervalo Atual
+
+```http
+GET /estatistica/intervalo
+```
+
+Exemplo de resposta:
+
+```json
+{
+  "intervaloSegundos": 3600
+}
+```
+
+---
+
+### Atualizar Intervalo
+
+```http
+PUT /estatistica/intervalo
+```
+
+Exemplo de requisicao:
+
+```json
+{
+  "intervaloSegundos": 120
+}
+```
+
+Resposta:
+
+```json
+{
+  "intervaloSegundos": 120
+}
+```
+
+Cada atualizacao cria um novo registro na collection `estatistica_intervalos` e desativa o intervalo anterior.
+
+---
+
+### Consultar Historico de Intervalos
+
+```http
+GET /estatistica/intervalo/historico
+```
+
+Exemplo de resposta:
+
+```json
+[
+  {
+    "intervaloSegundos": 3600,
+    "dataHoraAlteracao": "2026-06-25T03:00:00Z",
+    "ativo": false
+  },
+  {
+    "intervaloSegundos": 120,
+    "dataHoraAlteracao": "2026-06-25T03:10:00Z",
+    "ativo": true
+  }
+]
 ```
 
 ---
@@ -230,17 +292,125 @@ Os testes cobrem:
 
 ## Docker
 
-### Gerar Imagem
+### Executar API + MongoDB com Docker Compose
+
+Para subir a aplicaÃ§Ã£o e o MongoDB localmente:
+
+```bash
+docker compose up --build
+```
+
+A aplicaÃ§Ã£o ficarÃ¡ disponÃ­vel em:
+
+```text
+http://localhost:8080
+```
+
+O MongoDB ficarÃ¡ disponÃ­vel para ferramentas locais em:
+
+```text
+mongodb://localhost:27017/itautask
+```
+
+Para parar os containers:
+
+```bash
+docker compose down
+```
+
+Para parar os containers e apagar os dados locais do MongoDB:
+
+```bash
+docker compose down -v
+```
+
+### Rodar a API fora do Docker
+
+Se quiser rodar a aplicaÃ§Ã£o via Maven ou pela IDE, suba somente o MongoDB com o Compose:
+
+```bash
+docker compose up mongodb
+```
+
+A configuraÃ§Ã£o padrÃ£o usa:
+
+```properties
+spring.data.mongodb.uri=${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/itautask}
+```
+
+Dentro do Docker Compose, a variÃ¡vel `SPRING_DATA_MONGODB_URI` aponta a API para:
+
+```text
+mongodb://mongodb:27017/itautask
+```
+
+### Gerar Imagem Manualmente
 
 ```bash
 docker build -t itautask .
 ```
 
-### Executar Container
+### Executar Container Manualmente
 
 ```bash
-docker run -p 8080:8080 itautask
+docker run -p 8080:8080 -e SPRING_DATA_MONGODB_URI=mongodb://host.docker.internal:27017/itautask -e ESTATISTICA_INTERVALO_SEGUNDOS=3600 -e PORT=8080 itautask
 ```
+
+---
+
+## Variaveis de ambiente, Docker Compose, Render e Atlas
+
+A aplicacao usa variaveis de ambiente para funcionar localmente e em producao sem alterar o codigo:
+
+```properties
+spring.data.mongodb.uri=${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/itautask}
+server.port=${PORT:8080}
+estatistica.intervalo-segundos=${ESTATISTICA_INTERVALO_SEGUNDOS:3600}
+```
+
+Variaveis suportadas:
+
+| Variavel | Uso | Observacao |
+| --- | --- | --- |
+| `SPRING_DATA_MONGODB_URI` | URL de conexao do MongoDB | Fallback local: `mongodb://localhost:27017/itautask`. Use MongoDB Atlas em producao. |
+| `PORT` | Porta HTTP da aplicacao | Fallback local: `8080`. No Render, normalmente e definida automaticamente. |
+| `ESTATISTICA_INTERVALO_SEGUNDOS` | Janela inicial usada no calculo das estatisticas | Fallback local: `3600`. Pode ser alterada em runtime pelo endpoint `PUT /estatistica/intervalo`. |
+
+Use `.env.example` como modelo para criar um `.env` local. O arquivo `.env` real nao deve ser versionado, principalmente quando contiver usuario, senha ou URI do MongoDB Atlas.
+
+Para criar o `.env` local:
+
+```bash
+cp .env .env
+```
+
+No Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Para rodar via Maven no PowerShell:
+
+```powershell
+$env:SPRING_DATA_MONGODB_URI="mongodb://localhost:27017/itautask"
+$env:ESTATISTICA_INTERVALO_SEGUNDOS="3600"
+$env:PORT="8080"
+.\mvnw spring-boot:run
+```
+
+Com Docker Compose, a API usa `mongodb://mongodb:27017/itautask` dentro da rede Docker e o banco local salva os dados no volume `mongodb_data`. `docker compose down` para os containers sem apagar os dados; `docker compose down -v` remove tambem o volume e apaga o MongoDB local.
+
+No Render, crie um Web Service usando o `Dockerfile` e configure:
+
+```env
+SPRING_DATA_MONGODB_URI=mongodb+srv://USUARIO:SENHA@CLUSTER.mongodb.net/itautask?retryWrites=true&w=majority
+ESTATISTICA_INTERVALO_SEGUNDOS=3600
+```
+
+O Render define `PORT` automaticamente. No MongoDB Atlas, crie um usuario de banco, libere acesso de rede para o Render e use a connection string `mongodb+srv` na variavel `SPRING_DATA_MONGODB_URI`.
+
+Depois de alterar uma variavel no painel do Render, use `Save and deploy` ou `Save, rebuild, and deploy`. Se usar `Save only`, o servico continua rodando com os valores antigos ate o proximo deploy. O arquivo `render.example.yaml` e apenas uma documentacao de exemplo para Blueprint; o servico publicado foi configurado manualmente no Dashboard do Render.
 
 ---
 

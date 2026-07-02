@@ -2,13 +2,18 @@ package com.example.ITAUtask.service;
 
 import com.example.ITAUtask.dto.EstatisticaResponse;
 import com.example.ITAUtask.model.Transacao;
+import com.example.ITAUtask.repository.EstatisticaIntervaloRepository;
 import com.example.ITAUtask.repository.TransacaoRepository;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
+import java.time.Instant;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class EstatisticaServiceTest {
 
@@ -16,10 +21,13 @@ class EstatisticaServiceTest {
     void deveRetornarZerosQuandoNaoExistemTransacoes() {
 
         TransacaoRepository repository =
-                new TransacaoRepository();
+                mock(TransacaoRepository.class);
+
+        when(repository.findAll())
+                .thenReturn(List.of());
 
         EstatisticaConfiguracaoService configuracaoService =
-                new EstatisticaConfiguracaoService(60L);
+                criarConfiguracaoService(60L);
 
         EstatisticaService service =
                 new EstatisticaService(repository, configuracaoService);
@@ -38,31 +46,26 @@ class EstatisticaServiceTest {
     void deveCalcularEstatisticasCorretamente() {
 
         TransacaoRepository repository =
-                new TransacaoRepository();
+                mock(TransacaoRepository.class);
 
-        repository.salvar(
-                new Transacao(
-                        BigDecimal.valueOf(100),
-                        OffsetDateTime.now()
-                )
-        );
-
-        repository.salvar(
-                new Transacao(
-                        BigDecimal.valueOf(200),
-                        OffsetDateTime.now()
-                )
-        );
-
-        repository.salvar(
-                new Transacao(
-                        BigDecimal.valueOf(300),
-                        OffsetDateTime.now()
-                )
-        );
+        when(repository.findAll())
+                .thenReturn(List.of(
+                        new Transacao(
+                                BigDecimal.valueOf(100),
+                                Instant.now()
+                        ),
+                        new Transacao(
+                                BigDecimal.valueOf(200),
+                                Instant.now()
+                        ),
+                        new Transacao(
+                                BigDecimal.valueOf(300),
+                                Instant.now()
+                        )
+                ));
 
         EstatisticaConfiguracaoService configuracaoService =
-                new EstatisticaConfiguracaoService(60L);
+                criarConfiguracaoService(60L);
 
         EstatisticaService service =
                 new EstatisticaService(repository, configuracaoService);
@@ -81,24 +84,22 @@ class EstatisticaServiceTest {
     void deveIgnorarTransacoesForaDaJanelaDeTempo() {
 
         TransacaoRepository repository =
-                new TransacaoRepository();
+                mock(TransacaoRepository.class);
 
-        repository.salvar(
-                new Transacao(
-                        BigDecimal.valueOf(100),
-                        OffsetDateTime.now()
-                )
-        );
-
-        repository.salvar(
-                new Transacao(
-                        BigDecimal.valueOf(200),
-                        OffsetDateTime.now().minusMinutes(2)
-                )
-        );
+        when(repository.findAll())
+                .thenReturn(List.of(
+                        new Transacao(
+                                BigDecimal.valueOf(100),
+                                Instant.now()
+                        ),
+                        new Transacao(
+                                BigDecimal.valueOf(200),
+                                Instant.now().minusSeconds(120)
+                        )
+                ));
 
         EstatisticaConfiguracaoService configuracaoService =
-                new EstatisticaConfiguracaoService(60L);
+                criarConfiguracaoService(60L);
 
         EstatisticaService service =
                 new EstatisticaService(repository, configuracaoService);
@@ -117,17 +118,18 @@ class EstatisticaServiceTest {
     void deveUsarIntervaloAtualizadoDinamicamente() {
 
         TransacaoRepository repository =
-                new TransacaoRepository();
+                mock(TransacaoRepository.class);
 
-        repository.salvar(
-                new Transacao(
-                        BigDecimal.valueOf(100),
-                        OffsetDateTime.now().minusSeconds(90)
-                )
-        );
+        when(repository.findAll())
+                .thenReturn(List.of(
+                        new Transacao(
+                                BigDecimal.valueOf(100),
+                                Instant.now().minusSeconds(90)
+                        )
+                ));
 
         EstatisticaConfiguracaoService configuracaoService =
-                new EstatisticaConfiguracaoService(60L);
+                criarConfiguracaoService(60L);
 
         EstatisticaService service =
                 new EstatisticaService(repository, configuracaoService);
@@ -137,5 +139,20 @@ class EstatisticaServiceTest {
         configuracaoService.atualizarIntervaloSegundos(120L);
 
         assertEquals(1, service.calcular().count());
+    }
+
+    private EstatisticaConfiguracaoService criarConfiguracaoService(
+            long intervaloInicial
+    ) {
+        EstatisticaIntervaloRepository repository =
+                mock(EstatisticaIntervaloRepository.class);
+
+        when(repository.save(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        return new EstatisticaConfiguracaoService(
+                repository,
+                intervaloInicial
+        );
     }
 }

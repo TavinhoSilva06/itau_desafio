@@ -56,10 +56,11 @@ public class TransacaoService {
 
         Transacao transacao = new Transacao(
                 request.valor(),
-                request.dataHora()
+                request.dataHora().toInstant()
         );
 
-        repository.salvar(transacao);
+
+        repository.save(transacao);
 
         log.info(
                 "Transação salva com sucesso"
@@ -72,6 +73,6 @@ public class TransacaoService {
                 "Todas as transações foram removidas"
         );
 
-        repository.limpar();
+        repository.deleteAll();
     }
 }
