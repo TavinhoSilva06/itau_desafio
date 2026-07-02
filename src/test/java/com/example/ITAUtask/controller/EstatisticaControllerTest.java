@@ -1,5 +1,6 @@
 package com.example.ITAUtask.controller;
 
+import com.example.ITAUtask.dto.EstatisticaIntervaloHistoricoResponse;
 import com.example.ITAUtask.dto.EstatisticaResponse;
 import com.example.ITAUtask.service.EstatisticaConfiguracaoService;
 import com.example.ITAUtask.service.EstatisticaService;
@@ -11,6 +12,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.List;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -82,6 +85,33 @@ class EstatisticaControllerTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.intervaloSegundos").value(120));
+    }
+
+    @Test
+    void deveRetornarHistoricoDeIntervalos() throws Exception {
+
+        when(configuracaoService.listarHistorico())
+                .thenReturn(List.of(
+                        new EstatisticaIntervaloHistoricoResponse(
+                                120L,
+                                Instant.parse("2026-06-25T03:10:00Z"),
+                                true
+                        ),
+                        new EstatisticaIntervaloHistoricoResponse(
+                                60L,
+                                Instant.parse("2026-06-25T03:00:00Z"),
+                                false
+                        )
+                ));
+
+        mockMvc.perform(
+                        get("/estatistica/intervalo/historico")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].intervaloSegundos").value(120))
+                .andExpect(jsonPath("$[0].ativo").value(true))
+                .andExpect(jsonPath("$[1].intervaloSegundos").value(60))
+                .andExpect(jsonPath("$[1].ativo").value(false));
     }
 
     @Test

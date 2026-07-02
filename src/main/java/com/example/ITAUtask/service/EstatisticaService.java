@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.DoubleSummaryStatistics;
 
@@ -28,22 +29,23 @@ public class EstatisticaService {
                 "Iniciando cálculo das estatísticas"
         );
 
-        OffsetDateTime limite = OffsetDateTime.now()
-                // Pega o horário atual
-                .minusSeconds(configuracaoService.buscarIntervaloSegundos());
-// Subtrai a quantidade de segundos definida no application.properties
-// Exemplo:
-// intervaloSegundos = X segundos, pois você pode alterar no properties quando quiser
+        Instant limite = Instant.now()
+                        // Pega o horário atual
+                        .minusSeconds(configuracaoService.buscarIntervaloSegundos());
+        // Subtrai a quantidade de segundos definida no application.properties
+        // Exemplo:
+        // intervaloSegundos = X segundos, pois você pode alterar no properties quando quiser
 
 
 
-        DoubleSummaryStatistics stats = repository.buscarTodas()
+        DoubleSummaryStatistics stats = repository.findAll()
                 // Busca todas as transações salvas no repository
 
                 .stream()
                 // Transforma a lista em Stream para poder usar operações funcionais
 
-                .filter(t -> t.getDataHora().isAfter(limite))
+                .filter(t -> t.getDataHora().isAfter(limite)
+                )
                 /*
                     FILTRO PRINCIPAL DA REGRA DE NEGÓCIO
 

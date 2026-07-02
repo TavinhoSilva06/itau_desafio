@@ -1,5 +1,6 @@
 package com.example.ITAUtask.controller;
 
+import com.example.ITAUtask.dto.EstatisticaIntervaloHistoricoResponse;
 import com.example.ITAUtask.dto.EstatisticaIntervaloRequest;
 import com.example.ITAUtask.dto.EstatisticaIntervaloResponse;
 import com.example.ITAUtask.dto.EstatisticaResponse;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -29,6 +32,11 @@ public class EstatisticaController {
         return new EstatisticaIntervaloResponse(
                 configuracaoService.buscarIntervaloSegundos()
         );
+    }
+
+    @GetMapping("/estatistica/intervalo/historico")
+    public List<EstatisticaIntervaloHistoricoResponse> buscarHistoricoIntervalos() {
+        return configuracaoService.listarHistorico();
     }
 
     @PutMapping("/estatistica/intervalo")
