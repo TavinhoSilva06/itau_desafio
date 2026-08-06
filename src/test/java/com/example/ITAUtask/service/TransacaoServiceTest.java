@@ -1,6 +1,7 @@
 package com.example.ITAUtask.service;
 
 import com.example.ITAUtask.dto.TransacaoRequest;
+import com.example.ITAUtask.dto.TransacaoResponse;
 import com.example.ITAUtask.exception.TransacaoInvalidaException;
 import com.example.ITAUtask.model.Transacao;
 import com.example.ITAUtask.repository.EstatisticaIntervaloRepository;
@@ -9,7 +10,10 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.Instant;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -109,6 +113,27 @@ class TransacaoServiceTest {
         service.limpar();
 
         verify(repository).deleteAll();
+    }
+
+    @Test
+    void deveListarTodasAsTransacoesSemAplicarIntervalo() {
+
+        TransacaoRepository repository = mock(TransacaoRepository.class);
+        EstatisticaConfiguracaoService configuracaoService = criarConfiguracaoService(60L);
+        TransacaoService service = new TransacaoService(repository, configuracaoService);
+        Transacao transacao = new Transacao(
+                BigDecimal.valueOf(100),
+                Instant.parse("2020-01-01T00:00:00Z")
+        );
+
+        when(repository.findAll()).thenReturn(List.of(transacao));
+
+        List<TransacaoResponse> transacoes = service.listar();
+
+        assertEquals(1, transacoes.size());
+        assertEquals(BigDecimal.valueOf(100), transacoes.getFirst().valor());
+        assertEquals(Instant.parse("2020-01-01T00:00:00Z"), transacoes.getFirst().dataHora());
+        verify(repository).findAll();
     }
 
     private EstatisticaConfiguracaoService criarConfiguracaoService(

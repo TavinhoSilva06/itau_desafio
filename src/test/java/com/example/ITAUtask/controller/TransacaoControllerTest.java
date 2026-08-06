@@ -3,6 +3,7 @@ package com.example.ITAUtask.controller;
 // Serviço utilizado pelo controller
 import com.example.ITAUtask.exception.TransacaoInvalidaException;
 import com.example.ITAUtask.service.TransacaoService;
+import com.example.ITAUtask.dto.TransacaoResponse;
 
 // JUnit
 import org.junit.jupiter.api.Test;
@@ -28,7 +29,10 @@ import static org.mockito.Mockito.doNothing;
 
 // Métodos para construir requisições HTTP
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 // Métodos para validar respostas HTTP
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -52,6 +56,24 @@ class TransacaoControllerTest {
      */
     @MockitoBean
     private TransacaoService service;
+
+    @Test
+    void deveListarTodasAsTransacoes() throws Exception {
+
+        when(service.listar()).thenReturn(java.util.List.of(
+                new TransacaoResponse(
+                        "transacao-1",
+                        new java.math.BigDecimal("100.50"),
+                        java.time.Instant.parse("2026-06-08T14:43:00Z")
+                )
+        ));
+
+        mockMvc.perform(get("/transacao"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value("transacao-1"))
+                .andExpect(jsonPath("$[0].valor").value(100.50))
+                .andExpect(jsonPath("$[0].dataHora").value("2026-06-08T14:43:00Z"));
+    }
 
     /**
      * Testa o endpoint:

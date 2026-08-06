@@ -3,12 +3,14 @@ package com.example.ITAUtask.service;
 import com.example.ITAUtask.exception.TransacaoInvalidaException;
 import com.example.ITAUtask.model.Transacao;
 import com.example.ITAUtask.dto.TransacaoRequest;
+import com.example.ITAUtask.dto.TransacaoResponse;
 import com.example.ITAUtask.repository.TransacaoRepository;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 @Slf4j // Anotação do Lombok que cria o comando 'log' automaticamente
 @Service
@@ -74,5 +76,16 @@ public class TransacaoService {
         );
 
         repository.deleteAll();
+    }
+
+    public List<TransacaoResponse> listar() {
+        return repository.findAll()
+                .stream()
+                .map(transacao -> new TransacaoResponse(
+                        transacao.getId(),
+                        transacao.getValor(),
+                        transacao.getDataHora()
+                ))
+                .toList();
     }
 }
